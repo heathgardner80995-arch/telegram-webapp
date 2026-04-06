@@ -1,0 +1,29 @@
+---
+description: Superpowers-inspired workflow for all tasks
+alwaysApply: true
+---
+
+# Superpowers Workflow (Project Rule)
+
+Use this workflow for all non-trivial coding tasks:
+
+1. Clarify the goal and constraints before editing code.
+2. Propose a short implementation plan with small verifiable steps.
+3. Prefer test-first flow when practical:
+   - add or update a failing test,
+   - implement minimal fix,
+   - run relevant checks.
+4. Keep changes focused and avoid unrelated refactors.
+5. After implementation, run lightweight verification:
+   - tests or lint for touched scope,
+   - quick regression check of affected behavior.
+6. Before completion, provide:
+   - what changed,
+   - why it changed,
+   - how it was verified,
+   - remaining risks or next steps.
+
+Quality guardrails:
+- Evidence over claims: never state "fixed" without verification.
+- Simplicity first: prefer the smallest solution that solves the issue.
+- If requirements are ambiguous, ask a concise clarifying question.
